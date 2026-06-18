@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPS — Developer Productivity Score | Model Comparison</title>
+    <meta name="description" content="M.Tech Research: Comparing Statistical White-Box DPS Model with XGBoost Black-Box ML Model">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --stat-color: #6366f1;
+            --xgb-color: #10b981;
+            --dim-tes: #3b82f6;
+            --dim-cqs: #10b981;
+            --dim-cls: #f59e0b;
+            --dim-ais: #ef4444;
+            --dim-rcs: #06b6d4;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8fafc; }
+
+        /* Header */
+        .hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            color: white; padding: 2.5rem 0 2rem;
+        }
+        .hero h1 { font-weight: 700; font-size: 1.8rem; }
+        .hero .badge-custom { background: rgba(255,255,255,0.15); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; }
+
+        /* Cards */
+        .card { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: box-shadow 0.2s; }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .section-title { font-weight: 600; font-size: 1.1rem; color: #334155; margin-bottom: 1rem; }
+
+        /* Input groups */
+        .dim-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+        .dim-TES { background: #dbeafe; color: #1e40af; }
+        .dim-CQS { background: #d1fae5; color: #065f46; }
+        .dim-CLS { background: #fef3c7; color: #92400e; }
+        .dim-AIS { background: #fee2e2; color: #991b1b; }
+        .dim-RCS { background: #cffafe; color: #155e75; }
+
+        .form-label { font-size: 0.82rem; font-weight: 500; color: #475569; margin-bottom: 0.2rem; }
+        .form-control { font-size: 0.85rem; border-radius: 8px; }
+        .form-text { font-size: 0.7rem; }
+
+        /* Result cards */
+        .result-card { border-top: 4px solid; border-radius: 12px; }
+        .stat-card { border-top-color: var(--stat-color); }
+        .xgb-card { border-top-color: var(--xgb-color); }
+        .model-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+        .badge-stat { background: #eef2ff; color: var(--stat-color); }
+        .badge-xgb { background: #ecfdf5; color: var(--xgb-color); }
+
+        /* DPS Score display */
+        .dps-score { font-size: 3rem; font-weight: 700; line-height: 1; }
+        .dps-score-stat { color: var(--stat-color); }
+        .dps-score-xgb { color: var(--xgb-color); }
+
+        .class-badge { font-size: 0.85rem; padding: 4px 14px; border-radius: 20px; font-weight: 600; }
+        .class-High { background: #d1fae5; color: #065f46; }
+        .class-Moderate { background: #fef3c7; color: #92400e; }
+        .class-Low { background: #fee2e2; color: #991b1b; }
+
+        /* Progress bars for dimensions */
+        .dim-bar-label { font-size: 0.78rem; font-weight: 500; }
+        .dim-bar { height: 8px; border-radius: 4px; }
+
+        /* Comparison table */
+        .comparison-table th { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+        .comparison-table td { font-size: 0.85rem; }
+
+        /* Loading spinner */
+        .loading-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.85); z-index: 9999;
+            justify-content: center; align-items: center;
+        }
+        .loading-overlay.active { display: flex; }
+
+        /* Chart containers */
+        .chart-container { position: relative; height: 280px; }
+
+        /* Predict button */
+        .btn-predict {
+            background: linear-gradient(135deg, var(--stat-color), var(--xgb-color));
+            border: none; color: white; font-weight: 600; padding: 0.7rem 2rem;
+            border-radius: 10px; font-size: 1rem; letter-spacing: 0.3px;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .btn-predict:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.3); color: white; }
+
+        /* Footer */
+        footer { background: #1e1b4b; color: #94a3b8; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;" role="status"></div>
+        <p class="text-muted fw-medium">Running both models...</p>
+    </div>
+</div>
+
+<!-- ═══════ HEADER ═══════ -->
+<header class="hero">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h1><i class="bi bi-graph-up-arrow me-2"></i>DPS Model Comparison</h1>
+                <p class="mb-0 opacity-75" style="font-size:0.9rem;">
+                    Statistical White-Box Model vs XGBoost Black-Box ML Model
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge-custom"><i class="bi bi-mortarboard me-1"></i> M.Tech Research</span>
+                <span class="badge-custom"><i class="bi bi-database me-1"></i> 22,258 PRs</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════ MAIN ═══════ -->
+<main class="container py-4">
+
+    <!-- ── INPUT SECTION ── -->
+    <div class="card mb-4 p-4">
+        <h2 class="section-title"><i class="bi bi-sliders me-2"></i>Pull Request Input Parameters</h2>
+        <p class="text-muted" style="font-size:0.82rem;">
+            Enter the characteristics of a Pull Request. The same inputs will be processed by both models simultaneously.
+        </p>
+
+        <form id="predictionForm">
+            <!-- Group by dimension -->
+            {% set groups = {'TES': 'Task Efficiency', 'CQS': 'Code Quality', 'CLS': 'Cognitive Load', 'AIS': 'AI Assistance', 'RCS': 'Repository Context'} %}
+            {% for gkey, glabel in groups.items() %}
+            <div class="mb-3">
+                <span class="dim-badge dim-{{ gkey }} mb-2 d-inline-block">{{ gkey }} — {{ glabel }}</span>
+                <div class="row g-3">
+                    {% for field in fields %}
+                    {% if field.group == gkey %}
+                    <div class="col-md-4 col-lg-3">
+                        <label class="form-label" for="{{ field.name }}">{{ field.label }}</label>
+                        <input type="number" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                               value="{{ field.default }}" min="{{ field.min }}" max="{{ field.max }}" step="{{ field.step }}">
+                        <div class="form-text text-muted">{{ field.tip }}</div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-predict" id="btnPredict">
+                    <i class="bi bi-lightning-charge-fill me-1"></i> Run Both Models
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── RESULTS SECTION (hidden until prediction) ── -->
+    <div id="resultsSection" style="display:none;">
+
+        <!-- Side-by-side DPS scores -->
+        <div class="row g-4 mb-4">
+            <!-- Statistical Model -->
+            <div class="col-md-6">
+                <div class="card result-card stat-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="model-badge badge-stat"><i class="bi bi-eye me-1"></i>White-Box</span>
+                            <h5 class="mt-2 mb-0 fw-semibold">Statistical DPS Model</h5>
+                            <small class="text-muted">Entropy-Weighted Composite Index</small>
+                        </div>
+                    </div>
+                    <div class="text-center my-3">
+                        <div class="dps-score dps-score-stat" id="statDPS">—</div>
+                        <div class="mt-1"><span class="class-badge" id="statClass">—</span></div>
+                    </div>
+                    <!-- Dimension scores -->
+                    <div id="statDimensions" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- XGBoost Model -->
+            <div class="col-md-6">
+                <div class="card result-card xgb-card p-4 h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="model-badge badge-xgb"><i class="bi bi-cpu me-1"></i>Black-Box</span>
+                            <h5 class="mt-2 mb-0 fw-semibold">XGBoost ML Model</h5>
+                            <small class="text-muted">Gradient Boosted Trees (R² = 0.998)</small>
+                        </div>
+                    </div>
+                    <div class="text-center my-3">
+                        <div class="dps-score dps-score-xgb" id="xgbDPS">—</div>
+                        <div class="mt-1"><span class="class-badge" id="xgbClass">—</span></div>
+                    </div>
+                    <!-- Feature importance -->
+                    <div class="mt-3">
+                        <p class="dim-bar-label mb-2"><i class="bi bi-bar-chart me-1"></i>Top Feature Importances</p>
+                        <div class="chart-container" style="height:240px;">
+                            <canvas id="xgbImportanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <!-- Dimension radar chart -->
+            <div class="col-md-6">
+                <div class="card p-4 h-100">
+                    <h6 class="section-title"><i class="bi bi-pentagon me-2"></i>Dimension Scores (Statistical Model)</h6>
+                    <div class="chart-container">
+                        <canvas id="dimRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contribution breakdown -->
+            <div class="col-md-6">
+                <div class="card p-4 h-100">
+                    <h6 class="section-title"><i class="bi bi-pie-chart me-2"></i>Feature Contribution Breakdown</h6>
+                    <div class="chart-container">
+                        <canvas id="contribChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="card p-4 mb-4">
+            <h6 class="section-title"><i class="bi bi-layout-split me-2"></i>Model Comparison</h6>
+            <div class="table-responsive">
+                <table class="table comparison-table align-middle mb-0">
+                    <thead>
+                        <tr class="border-bottom">
+                            <th>Aspect</th>
+                            <th><span class="model-badge badge-stat">Statistical</span></th>
+                            <th><span class="model-badge badge-xgb">XGBoost</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="fw-medium">Model Type</td><td>White-Box (Explainable)</td><td>Black-Box (ML)</td></tr>
+                        <tr><td class="fw-medium">DPS Score</td><td id="cmpStatDPS">—</td><td id="cmpXgbDPS">—</td></tr>
+                        <tr><td class="fw-medium">Class</td><td id="cmpStatClass">—</td><td id="cmpXgbClass">—</td></tr>
+                        <tr><td class="fw-medium">Method</td><td>Hierarchical Entropy-Weighted Index</td><td>Gradient Boosted Trees (500+ trees)</td></tr>
+                        <tr><td class="fw-medium">Weights</td><td>Shannon Entropy (data-driven, fixed)</td><td>Learned from training data</td></tr>
+                        <tr><td class="fw-medium">Explainability</td>
+                            <td><span class="text-success fw-semibold">✓ Full</span> — exact formula, every weight visible</td>
+                            <td><span class="text-warning fw-semibold">◐ Partial</span> — feature importance only</td></tr>
+                        <tr><td class="fw-medium">Training R²</td><td>N/A (formula-based)</td><td>0.998</td></tr>
+                        <tr><td class="fw-medium">Score Difference</td><td colspan="2" class="text-center fw-semibold" id="cmpDiff">—</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Explainability Card -->
+        <div class="card p-4 mb-4">
+            <h6 class="section-title"><i class="bi bi-lightbulb me-2"></i>Statistical Model — Explainability Summary</h6>
+            <div id="explanationText" class="text-muted" style="font-size:0.88rem;line-height:1.7;">—</div>
+        </div>
+
+    </div><!-- /resultsSection -->
+</main>
+
+<!-- ═══════ FOOTER ═══════ -->
+<footer class="py-3 mt-4">
+    <div class="container text-center">
+        <p class="mb-0">DPS Research Pipeline — M.Tech, Data Analytics — 2026</p>
+    </div>
+</footer>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// JAVASCRIPT — Handle form submission and render results
+// ═══════════════════════════════════════════════════════════════
+
+// Chart instances (to destroy before redraw)
+let radarChart = null, contribChartInst = null, xgbImpChart = null;
+
+const dimColors = {
+    TES: '#3b82f6', CQS: '#10b981', CLS: '#f59e0b', AIS: '#ef4444', RCS: '#06b6d4'
+};
+const dimLabels = {
+    TES: 'Task Efficiency', CQS: 'Code Quality', CLS: 'Cognitive Load',
+    AIS: 'AI Assistance', RCS: 'Repository Context'
+};
+
+document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Show loading
+    document.getElementById('loadingOverlay').classList.add('active');
+
+    const formData = new FormData(this);
+
+    try {
+        const resp = await fetch('/predict', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        if (!data.success) {
+            alert('Error: ' + data.error);
+            return;
+        }
+
+        renderResults(data);
+        document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+        alert('Request failed: ' + err.message);
+    } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+    }
+});
+
+function renderResults(data) {
+    const stat = data.statistical;
+    const xgb  = data.xgboost;
+
+    // ── DPS Scores ────────────────────────────────────────────
+    document.getElementById('statDPS').textContent = stat.dps.toFixed(4);
+    document.getElementById('xgbDPS').textContent  = xgb.dps.toFixed(4);
+
+    setClassBadge('statClass', stat.productivity_class);
+    setClassBadge('xgbClass',  xgb.productivity_class);
+
+    // ── Comparison table ──────────────────────────────────────
+    document.getElementById('cmpStatDPS').textContent   = stat.dps.toFixed(4);
+    document.getElementById('cmpXgbDPS').textContent    = xgb.dps.toFixed(4);
+    document.getElementById('cmpStatClass').textContent = stat.productivity_class;
+    document.getElementById('cmpXgbClass').textContent  = xgb.productivity_class;
+
+    const diff = Math.abs(stat.dps - xgb.dps);
+    document.getElementById('cmpDiff').textContent = `Δ = ${diff.toFixed(4)} (${(diff * 100).toFixed(2)}%)`;
+
+    // ── Dimension bars (stat model) ───────────────────────────
+    const dimDiv = document.getElementById('statDimensions');
+    dimDiv.innerHTML = '';
+    for (const [dim, score] of Object.entries(stat.dimension_scores)) {
+        const pct = Math.round(score * 100);
+        dimDiv.innerHTML += `
+            <div class="mb-2">
+                <div class="d-flex justify-content-between dim-bar-label">
+                    <span><span class="dim-badge dim-${dim} me-1">${dim}</span> ${dimLabels[dim]}</span>
+                    <span class="fw-semibold">${score.toFixed(4)}</span>
+                </div>
+                <div class="progress dim-bar mt-1">
+                    <div class="progress-bar" style="width:${pct}%;background:${dimColors[dim]}" role="progressbar"></div>
+                </div>
+            </div>`;
+    }
+
+    // ── Radar Chart ───────────────────────────────────────────
+    if (radarChart) radarChart.destroy();
+    const radarCtx = document.getElementById('dimRadarChart').getContext('2d');
+    const dims = Object.keys(stat.dimension_scores);
+    radarChart = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: dims.map(d => dimLabels[d]),
+            datasets: [{
+                label: 'Dimension Score',
+                data: dims.map(d => stat.dimension_scores[d]),
+                backgroundColor: 'rgba(99,102,241,0.15)',
+                borderColor: '#6366f1',
+                borderWidth: 2,
+                pointBackgroundColor: dims.map(d => dimColors[d]),
+                pointRadius: 5,
+            }]
+        },
+        options: {
+            scales: { r: { min: 0, max: 1, ticks: { stepSize: 0.2, font: { size: 10 } } } },
+            plugins: { legend: { display: false } },
+            responsive: true, maintainAspectRatio: false,
+        }
+    });
+
+    // ── Contribution Bar Chart ────────────────────────────────
+    if (contribChartInst) contribChartInst.destroy();
+    const contribCtx = document.getElementById('contribChart').getContext('2d');
+    let allContribs = [];
+    for (const [dim, contribs] of Object.entries(stat.contributions)) {
+        contribs.forEach(c => { c.dim = dim; allContribs.push(c); });
+    }
+    allContribs.sort((a, b) => b.contribution - a.contribution);
+    const top12 = allContribs.slice(0, 12);
+
+    contribChartInst = new Chart(contribCtx, {
+        type: 'bar',
+        data: {
+            labels: top12.map(c => c.feature.replace(/_/g, ' ').substring(0, 22)),
+            datasets: [{
+                data: top12.map(c => c.contribution),
+                backgroundColor: top12.map(c => dimColors[c.dim] || '#94a3b8'),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { title: { display: true, text: 'Weighted Contribution' } } },
+            responsive: true, maintainAspectRatio: false,
+        }
+    });
+
+    // ── XGBoost Feature Importance Chart ──────────────────────
+    if (xgbImpChart) xgbImpChart.destroy();
+    const xgbCtx = document.getElementById('xgbImportanceChart').getContext('2d');
+    const topImp = xgb.feature_importances.slice(0, 10);
+
+    xgbImpChart = new Chart(xgbCtx, {
+        type: 'bar',
+        data: {
+            labels: topImp.map(f => f.feature.replace(/_/g, ' ').substring(0, 22)),
+            datasets: [{
+                data: topImp.map(f => f.importance),
+                backgroundColor: topImp.map(f => f.feature.startsWith('ai_') ? '#ef4444' : '#10b981'),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { title: { display: true, text: 'Importance (Gain)' } } },
+            responsive: true, maintainAspectRatio: false,
+        }
+    });
+
+    // ── Explanation text ──────────────────────────────────────
+    document.getElementById('explanationText').innerHTML =
+        `<p><strong>Formula:</strong> ${stat.explanation.formula}</p>
+         <p><strong>Weighting:</strong> ${stat.explanation.weighting}</p>
+         <p><strong>Interpretation:</strong> ${stat.explanation.interpretation}</p>
+         <p class="mb-0"><strong>Key advantage:</strong> Every number in the statistical model can be traced back to a specific formula and weight.
+         The XGBoost model produces similar results (Δ = ${diff.toFixed(4)}) but cannot explain <em>why</em> — it is a learned approximation of the statistical formula.</p>`;
+}
+
+function setClassBadge(elemId, cls) {
+    const el = document.getElementById(elemId);
+    el.textContent = cls;
+    el.className = `class-badge class-${cls}`;
+}
+</script>
+
+</body>
+</html>

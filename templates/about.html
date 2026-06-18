@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About — DPS Model Comparison</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f8fafc; }
+        .hero { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%); color: white; padding: 2rem 0; }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <h1 class="fw-bold"><i class="bi bi-info-circle me-2"></i>About the DPS Models</h1>
+            <p class="mb-0 opacity-75">M.Tech Research — Impact of AI on Developer Productivity</p>
+            <a href="/" class="btn btn-outline-light btn-sm mt-2"><i class="bi bi-arrow-left me-1"></i>Back to Predictor</a>
+        </div>
+    </header>
+
+    <main class="container py-4">
+        <div class="row g-4">
+            <!-- Statistical Model -->
+            <div class="col-md-6">
+                <div class="card p-4 h-100" style="border-top: 4px solid #6366f1;">
+                    <h4 class="fw-bold" style="color:#6366f1;"><i class="bi bi-eye me-2"></i>Statistical DPS Model</h4>
+                    <span class="badge bg-primary-subtle text-primary mb-3">White-Box · Explainable</span>
+
+                    <h6 class="fw-semibold">What is it?</h6>
+                    <p>A hierarchical composite index that combines 14 software engineering metrics into a single Developer Productivity Score (DPS) between 0 and 1.</p>
+
+                    <h6 class="fw-semibold">How does it work?</h6>
+                    <ol>
+                        <li><strong>Feature Engineering</strong> — 3 AI behavioral features are computed from raw metrics.</li>
+                        <li><strong>Normalization</strong> — RobustScaler centers and scales all features.</li>
+                        <li><strong>Polarity Inversion</strong> — Negative features (e.g., "longer time = worse") are flipped so higher = better.</li>
+                        <li><strong>Entropy Weighting</strong> — Shannon entropy determines each feature's importance within its dimension.</li>
+                        <li><strong>Hierarchical Aggregation</strong> — 5 dimension scores are averaged equally to produce DPS.</li>
+                    </ol>
+
+                    <h6 class="fw-semibold">Key Strengths</h6>
+                    <ul>
+                        <li>Fully transparent — every weight and formula is visible</li>
+                        <li>No training required — weights are computed analytically</li>
+                        <li>Grounded in established methodology (OECD Composite Indicators Handbook)</li>
+                        <li>Can explain exactly why a PR scored high or low</li>
+                    </ul>
+
+                    <h6 class="fw-semibold">Formula</h6>
+                    <code class="d-block bg-light p-2 rounded">DPS = (TES + CQS + CLS + AIS + RCS) / 5</code>
+                </div>
+            </div>
+
+            <!-- XGBoost Model -->
+            <div class="col-md-6">
+                <div class="card p-4 h-100" style="border-top: 4px solid #10b981;">
+                    <h4 class="fw-bold" style="color:#10b981;"><i class="bi bi-cpu me-2"></i>XGBoost ML Model</h4>
+                    <span class="badge bg-success-subtle text-success mb-3">Black-Box · Machine Learning</span>
+
+                    <h6 class="fw-semibold">What is it?</h6>
+                    <p>A gradient-boosted decision tree ensemble that learns to predict DPS from the same features. Trained on 22,258 Pull Requests.</p>
+
+                    <h6 class="fw-semibold">How does it work?</h6>
+                    <ol>
+                        <li><strong>Same Preprocessing</strong> — log1p, percentile clipping, scaling.</li>
+                        <li><strong>Training</strong> — XGBoost builds hundreds of decision trees sequentially, each correcting the errors of the previous.</li>
+                        <li><strong>Prediction</strong> — New input passes through all trees; their outputs are summed.</li>
+                    </ol>
+
+                    <h6 class="fw-semibold">Key Strengths</h6>
+                    <ul>
+                        <li>Extremely accurate — R² = 0.998 (99.8% variance explained)</li>
+                        <li>Captures non-linear relationships</li>
+                        <li>Fast inference</li>
+                        <li>Industry standard for tabular data</li>
+                    </ul>
+
+                    <h6 class="fw-semibold">Limitation</h6>
+                    <p class="mb-0">Cannot explain <em>why</em> a specific score was produced. Feature importance shows which features matter globally, but not the exact formula for any single prediction.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Summary -->
+        <div class="card p-4 mt-4">
+            <h5 class="fw-bold"><i class="bi bi-layout-split me-2"></i>Why Compare Both?</h5>
+            <p>This application demonstrates a core principle in data science: the <strong>interpretability–accuracy tradeoff</strong>.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="p-3 rounded" style="background:#eef2ff;">
+                        <strong style="color:#6366f1;">Statistical Model</strong> — prioritizes interpretability. A researcher can trace every decimal point back to a formula. This is essential for academic publications where reviewers must verify methodology.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 rounded" style="background:#ecfdf5;">
+                        <strong style="color:#10b981;">XGBoost Model</strong> — prioritizes predictive accuracy. In a production environment where you need to score thousands of PRs per second, XGBoost can replicate the statistical formula without running the full pipeline.
+                    </div>
+                </div>
+            </div>
+            <p class="mt-3 mb-0 text-muted">In this research, both models produce nearly identical outputs (Δ ≈ 0.004), proving that the statistical framework is learnable by ML — a powerful validation of the entropy-weighted methodology.</p>
+        </div>
+    </main>
+
+    <footer class="py-3 mt-4" style="background:#1e1b4b; color:#94a3b8; font-size:0.8rem;">
+        <div class="container text-center">
+            <p class="mb-0">DPS Research Pipeline — M.Tech, Data Analytics — 2026</p>
+        </div>
+    </footer>
+</body>
+</html>
